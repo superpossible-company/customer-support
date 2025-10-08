@@ -34,6 +34,7 @@ import java.net.http.HttpRequest;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -45,7 +46,6 @@ import org.apache.roller.planet.pojos.SubscriptionEntry;
 import org.apache.roller.planet.pojos.Subscription;
 
 import static java.net.http.HttpResponse.BodyHandlers.ofInputStream;
-
 
 /**
  * A FeedFetcher based on Apache ROME and {@link java.net.http.HttpClient}.
@@ -84,6 +84,17 @@ public class RomeFeedFetcher implements FeedFetcher {
 
         if(feedURL == null) {
             throw new IllegalArgumentException("feed url cannot be null");
+        }
+        
+        URI uri;
+        try {
+            uri = URI.create(feedURL);
+            String host = uri.getHost();
+            if (host == null || !Arrays.asList("example.com", "anotherexample.com").contains(host)) {
+                throw new IllegalArgumentException("Unauthorized feed URL host");
+            }
+        } catch (IllegalArgumentException e) {
+            throw new FetcherException("Invalid feed URL: " + feedURL, e);
         }
         
         // fetch the feed
@@ -226,13 +237,23 @@ public class RomeFeedFetcher implements FeedFetcher {
     }
     
     private SyndFeed fetchFeed(String url) throws IOException, InterruptedException, FeedException {
-        
-        HttpRequest request = requestBuilder.copy().uri(URI.create(url)).build();
+        URI uri = URI.create(url);
+
+        if (!isAllowedUri(uri)) {
+            throw new IllegalArgumentException("Invalid URI");
+        }
+
+        HttpRequest request = requestBuilder.copy().uri(uri).build();
         
         try(XmlReader reader = new XmlReader(client.send(request, ofInputStream()).body())) {
             return new SyndFeedInput().build(reader);
         }
        
+    }
+
+    private boolean isAllowedUri(URI uri) {
+        Set<String> allowedHosts = Set.of("allowed-host1.com", "allowed-host2.com");
+        return ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())) && allowedHosts.contains(uri.getHost());
     }
     
 }
