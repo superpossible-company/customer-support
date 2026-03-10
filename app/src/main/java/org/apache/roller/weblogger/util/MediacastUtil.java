@@ -18,6 +18,12 @@
 
 package org.apache.roller.weblogger.util;
 
+import java.net.URL;
+import java.net.MalformedURLException;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
+
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -50,6 +56,16 @@ public final class MediacastUtil {
         
         if(url == null || url.isBlank()) {
             return null;
+        }
+        try {
+            URL parsedUrl = new URL(url);
+            // TODO: update allowed hosts as needed
+            Set<String> allowedHosts = new HashSet<>(Arrays.asList("lgtm.com", "trustedhost.com"));
+            if (!allowedHosts.contains(parsedUrl.getHost())) {
+                throw new MediacastException("UNAUTHORIZED_HOST", "Mediacast lookup: host not allowed");
+            }
+        } catch (MalformedURLException e) {
+            throw new MediacastException("MALFORMED_URL", "Mediacast lookup: URL is malformed", e);
         }
         
         MediacastResource resource = null;

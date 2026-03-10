@@ -67,6 +67,7 @@ import org.apache.struts2.interceptor.validation.SkipValidation;
 public final class EntryEdit extends UIAction {
 
     private static Log log = LogFactory.getLog(EntryEdit.class);
+    private static final String ALLOWED_MEDIACAST_URL = "https://trusted.example.com"; // TODO: update allowed whitelist as needed
 
     // bean for managing form data
     private EntryBean bean = new EntryBean();
@@ -227,8 +228,13 @@ public final class EntryEdit extends UIAction {
                     try {
                         // Fetch MediaCast resource
                         log.debug("Checking MediaCast attributes");
-                        MediacastResource mediacast = MediacastUtil
-                                .lookupResource(getBean().getEnclosureURL());
+                        String enclosureUrl = getBean().getEnclosureURL();
+                        URL url = new URL(enclosureUrl);
+                        if (!url.getHost().equals(new URL(ALLOWED_MEDIACAST_URL).getHost())) {
+                            log.error("Unauthorized MediaCast URL: " + enclosureUrl);
+                        } else {
+                            MediacastResource mediacast = MediacastUtil
+                                .lookupResource(enclosureUrl);
 
                         // set mediacast attributes
                         weblogEntry.putEntryAttribute("att_mediacast_url",
